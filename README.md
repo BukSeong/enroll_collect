@@ -47,7 +47,7 @@
 
 ### 环境要求
 - Python 3.7+
-- Windows/Linux/macOS
+- Windows 11 x64
 
 ### 安装步骤
 
