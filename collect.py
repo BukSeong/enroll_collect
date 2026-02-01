@@ -1,10 +1,19 @@
 import sys
+import os
 import numpy as np
 import pandas as pd
 import json
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+
+# 兼容PyInstaller打包路径
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.abspath(".")
+logo_path = os.path.join(base_path, "logo_matrix.npy")
+major_path = os.path.join(base_path, "major.json")
 
 # 日志系统集成
 import os
@@ -289,7 +298,7 @@ class WelcomePage(QWidget):
     def display_logo(self):
         """显示校徽点阵"""
         try:
-            matrix = np.load('logo_matrix.npy')
+            matrix = np.load(logo_path)
             size = self.logosize if hasattr(self, 'logosize') else 256
             pixmap = QPixmap(size, size)
             pixmap.fill(QColor(245, 245, 245))
@@ -360,7 +369,7 @@ class FormPage(QWidget):
     def load_major_data(self):
         """加载专业数据"""
         try:
-            with open('major.json', 'r', encoding='utf-8') as f:
+            with open(major_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"加载专业数据失败: {e}")
