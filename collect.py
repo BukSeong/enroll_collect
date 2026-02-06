@@ -339,9 +339,10 @@ class WelcomePage(QWidget):
             total_students = len(df)
             incomplete_info = 0
             
-            # 检查每一行的完整性
+            # 检查每一行的完整性（备注不计入不完整）
             for index, row in df.iterrows():
-                if row.isnull().any():
+                row_check = row.drop(labels=['备注']) if '备注' in row.index else row
+                if row_check.isnull().any():
                     incomplete_info += 1
             
             # 弹窗提示
@@ -513,6 +514,24 @@ class FormPage(QWidget):
                 border-color: #3498db;
             }
         """)
+
+        # 10. 备注
+        self.remark_input = QLineEdit()
+        self.remark_input.setPlaceholderText("请输入备注")
+        self.remark_input.setStyleSheet("""
+            QLineEdit {
+                padding: 15px 10px;
+                font-size: 24px;
+                border: 2px solid #ddd;
+                border-radius: 5px;
+                min-width: 450px;
+                min-height: 56px;
+                line-height: 32px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         
         # 9. 参加排名人数
         self.total_rank_input = QLineEdit("1000")
@@ -542,6 +561,7 @@ class FormPage(QWidget):
         form_layout.addRow("总分数：", self.total_score_input)
         form_layout.addRow("最近一次年级排名：", self.rank_input)
         form_layout.addRow("参加排名人数：", self.total_rank_input)
+        form_layout.addRow("备注：", self.remark_input)
         
         # 按钮
         button_layout = QHBoxLayout()
@@ -698,6 +718,8 @@ class FormPage(QWidget):
         if not self.total_rank_input.text().strip():
             QMessageBox.warning(self, "验证错误", "请输入参加排名人数！")
             return False
+
+        # 备注可为空，无需校验
         
         return True
     
@@ -717,7 +739,8 @@ class FormPage(QWidget):
                 '最近一次考试分数': float(self.score_input.text()),
                 '总分数': float(self.total_score_input.text()),
                 '最近一次年级排名': int(self.rank_input.text()),
-                '参加排名人数': int(self.total_rank_input.text())
+                '参加排名人数': int(self.total_rank_input.text()),
+                '备注': self.remark_input.text().strip()
             }
             # 导出到Excel
             self.export_to_excel(student_data)
@@ -780,6 +803,8 @@ class FormPage(QWidget):
         self.total_score_input.setText("750")
         self.rank_input.clear()
         self.total_rank_input.setText("1000")
+        self.remark_input.clear()
+
 
 
 class SuccessPage(QWidget):
@@ -789,41 +814,29 @@ class SuccessPage(QWidget):
         self.parent_window = parent
         self.logosize = logosize
         self.init_ui()
-    
+
     def init_ui(self):
-        import random
-        greetings = [
-            "春风得意马蹄疾，一日看尽长安花。",
-            "愿你金榜题名，前程似锦！",
-            "星光不负赶路人，时光不负有心人。",
-            "愿你不负韶华，圆梦交大！",
-            "高考顺利，梦想成真！",
-            "愿你前路光明，未来可期！",
-            "一举夺魁，鹏程万里！",
-            "愿你旗开得胜，马到成功！",
-            "愿你心想事成，前程似锦！",
-            "愿你以梦为马，不负韶华！"
-        ]
         # 设置背景色
         self.setStyleSheet("background-color: #f5f5f5;")
         # 主布局
-        main_layout = QVBoxLayout()
-        main_layout.setAlignment(Qt.AlignCenter)
-        # 获取当前学生数量
-        student_count = self.get_student_count()
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setAlignment(Qt.AlignCenter)
+
         # 成功信息
-        success_text = QLabel(f"恭喜你成为第{student_count}位意向生！")
-        success_text.setAlignment(Qt.AlignCenter)
-        success_text.setStyleSheet("font-size: 28px; font-weight: bold; color: #2ecc71; margin: 30px;")
+        self.success_text = QLabel()
+        self.success_text.setAlignment(Qt.AlignCenter)
+        self.success_text.setStyleSheet("font-size: 28px; font-weight: bold; color: #2ecc71; margin: 30px;")
+
         # 随机祝福
-        wish = random.choice(greetings)
-        wish_text = QLabel(wish)
-        wish_text.setAlignment(Qt.AlignCenter)
-        wish_text.setStyleSheet("font-size: 24px; color: #333; margin: 20px;")
+        self.wish_text = QLabel()
+        self.wish_text.setAlignment(Qt.AlignCenter)
+        self.wish_text.setStyleSheet("font-size: 24px; color: #333; margin: 20px;")
+
         # 校徽显示
         self.logo_label = QLabel()
         self.logo_label.setAlignment(Qt.AlignCenter)
         self.display_logo()
+
         # 返回按钮
         back_btn = QPushButton("返回")
         back_btn.setStyleSheet("""
@@ -845,15 +858,33 @@ class SuccessPage(QWidget):
             }
         """)
         back_btn.clicked.connect(self.parent_window.show_welcome_page)
-        # 添加到布局
-        main_layout.addWidget(success_text)
-        main_layout.addWidget(wish_text)
-        main_layout.addWidget(self.logo_label)
-        main_layout.addWidget(back_btn)
-        self.setLayout(main_layout)
-    
+
+        self.main_layout.addWidget(self.success_text)
+        self.main_layout.addWidget(self.wish_text)
+        self.main_layout.addWidget(self.logo_label)
+        self.main_layout.addWidget(back_btn)
+        self.setLayout(self.main_layout)
+
+    def refresh(self):
+        import random
+        greetings = [
+            "春风得意马蹄疾，一日看尽长安花。",
+            "愿你金榜题名，前程似锦！",
+            "星光不负赶路人，时光不负有心人。",
+            "愿你不负韶华，圆梦交大！",
+            "高考顺利，梦想成真！",
+            "愿你前路光明，未来可期！",
+            "一举夺魁，鹏程万里！",
+            "愿你旗开得胜，马到成功！",
+            "愿你心想事成，前程似锦！",
+            "愿你以梦为马，不负韶华！"
+        ]
+        student_count = self.get_student_count() - 1 if self.get_student_count() != 1 else 1 # 减1因为刚添加完
+        self.success_text.setText(f"恭喜你成为第{student_count}位意向生！")
+        wish = random.choice(greetings)
+        self.wish_text.setText(wish)
+
     def get_student_count(self):
-        """获取当前学生序号（res.xlsx的‘序号’列最大值+1，若无则为1）"""
         try:
             if os.path.exists('res.xlsx'):
                 df = pd.read_excel('res.xlsx', index_col=0)
@@ -869,11 +900,10 @@ class SuccessPage(QWidget):
                 return 1
         except Exception as e:
             return 1
-    
+
     def display_logo(self):
-        """显示校徽点阵"""
         try:
-            matrix = np.load('logo_matrix.npy')
+            matrix = np.load(logo_path)
             size = self.logosize if hasattr(self, 'logosize') else 256
             pixmap = QPixmap(size, size)
             pixmap.fill(QColor(245, 245, 245))
@@ -947,6 +977,7 @@ class MainWindow(QMainWindow):
     
     def show_success_page(self):
         """显示成功页面"""
+        self.success_page.refresh()
         self.stacked_layout.setCurrentWidget(self.success_page)
 
 
